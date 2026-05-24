@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import type { MouseEvent, TouchEvent } from 'react';
 import type { Point } from '../utils/math';
 import { screenToWorld } from '../utils/math';
@@ -62,6 +62,25 @@ export const Canvas: React.FC<CanvasProps> = ({
   const touchStartZoomRef = useRef<number>(1);
   const touchStartPanRef = useRef<Point>({ x: 0, y: 0 });
 
+  const growthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const dotRadiusRef = useRef<number>(0);
+
+  const stopGrowthTimer = () => {
+    if (growthIntervalRef.current) {
+      clearInterval(growthIntervalRef.current);
+      growthIntervalRef.current = null;
+    }
+  };
+
+  // Clear interval on unmount
+  useEffect(() => {
+    return () => {
+      if (growthIntervalRef.current) {
+        clearInterval(growthIntervalRef.current);
+      }
+    };
+  }, []);
+
   const diskRadius = 250; // Poincar? disk boundary in world coordinates
 
   // Combine history and active stroke for drawing
@@ -72,68 +91,14 @@ export const Canvas: React.FC<CanvasProps> = ({
     return history;
   }, [history, activeStroke]);
 
-  // Adjust canvas size on resize
-  useEffect(() => {
-    const handleResize = () => {
-      const canvas = canvasRef.current;
-      const container = containerRef.current;
-      if (!canvas || !container) return;
-
-      const rect = container.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-
-      // Set canvas display size
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
-
-      // Set canvas drawing buffer size (high resolution)
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-
-      // Draw everything
-      draw();
-    };
-
-    window.addEventListener('resize', handleResize);
-    handleResize(); // Initial sizing
-
-    return () => window.removeEventListener('resize', handleResize);
-  }, [allStrokes, zoom, pan, bgColor, bgType, showGrid, symmetryCount, mirror, selectedTool]);
-
-  // Main drawing caller
-  const draw = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    ctx.save();
-    ctx.scale(dpr, dpr); // scale to match high-resolution buffer
-
-    const w = canvas.width / dpr;
-    const h = canvas.height / dpr;
-
-    // Render strokes
-    renderStrokesToCanvas(ctx, allStrokes, w, h, pan.x, pan.y, zoom, bgColor, bgType);
-
-    // Draw Grid / Symmetry lines if enabled
-    if (showGrid) {
-      drawSymmetryGrid(ctx, w, h);
-    }
-
-    ctx.restore();
-  };
-
   // Draw symmetry guidelines and hyperbolic boundary
-  const drawSymmetryGrid = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+  const drawSymmetryGrid = useCallback((ctx: CanvasRenderingContext2D, w: number, h: number) => {
     ctx.save();
     // Center-translate and zoom/pan to match the drawing canvas transformations
     ctx.translate(w / 2 + pan.x, h / 2 + pan.y);
     ctx.scale(zoom, zoom);
 
-    // 1. Draw Hyperbolic Poincar? Disk boundary if hyperbolic tool is active
+    // 1. Draw Hyperbolic Poincaré Disk boundary if hyperbolic tool is active
     if (selectedTool === 'hyperbolic') {
       ctx.beginPath();
       ctx.arc(0, 0, diskRadius, 0, 2 * Math.PI);
@@ -187,12 +152,66 @@ export const Canvas: React.FC<CanvasProps> = ({
     ctx.fill();
 
     ctx.restore();
-  };
+  }, [pan.x, pan.y, zoom, selectedTool, diskRadius, symmetryCount, mirror]);
+
+  // Main drawing caller
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    ctx.save();
+    ctx.scale(dpr, dpr); // scale to match high-resolution buffer
+
+    const w = canvas.width / dpr;
+    const h = canvas.height / dpr;
+
+    // Render strokes
+    renderStrokesToCanvas(ctx, allStrokes, w, h, pan.x, pan.y, zoom, bgColor, bgType);
+
+    // Draw Grid / Symmetry lines if enabled
+    if (showGrid) {
+      drawSymmetryGrid(ctx, w, h);
+    }
+
+    ctx.restore();
+  }, [allStrokes, pan.x, pan.y, zoom, bgColor, bgType, showGrid, drawSymmetryGrid]);
+
+  // Adjust canvas size on resize
+  useEffect(() => {
+    const handleResize = () => {
+      const canvas = canvasRef.current;
+      const container = containerRef.current;
+      if (!canvas || !container) return;
+
+      const rect = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+
+      // Set canvas display size
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+
+      // Set canvas drawing buffer size (high resolution)
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+
+      // Draw everything
+      draw();
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial sizing
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, [draw]);
 
   // Re-draw whenever strokes, zoom, pan, symmetry, or grid options change
   useEffect(() => {
     draw();
-  }, [allStrokes, zoom, pan, bgColor, bgType, showGrid, symmetryCount, mirror, selectedTool]);
+  }, [draw]);
 
   // Handle Mouse Down
   const handleMouseDown = (e: MouseEvent<HTMLCanvasElement>) => {
@@ -225,6 +244,21 @@ export const Canvas: React.FC<CanvasProps> = ({
         mirror,
         diskRadius
       );
+
+      if (selectedTool === 'paint-dot') {
+        stopGrowthTimer();
+        const startRadius = brushWidth;
+        dotRadiusRef.current = startRadius;
+        growthIntervalRef.current = setInterval(() => {
+          dotRadiusRef.current += 1.2;
+          if (dotRadiusRef.current > 80) {
+            dotRadiusRef.current = 80;
+            stopGrowthTimer();
+          }
+          const outerPt = { x: worldPt.x + dotRadiusRef.current, y: worldPt.y };
+          updateStroke(outerPt, diskRadius);
+        }, 30);
+      }
     }
   };
 
@@ -247,12 +281,27 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     if (isDrawing && activeStroke) {
       const worldPt = screenToWorld(x, y, rect.width, rect.height, pan.x, pan.y, zoom);
-      updateStroke(worldPt, diskRadius);
+      if (activeStroke.tool === 'paint-dot') {
+        const center = activeStroke.points[0];
+        const dx = worldPt.x - center.x;
+        const dy = worldPt.y - center.y;
+        const dragDist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dragDist > dotRadiusRef.current) {
+          stopGrowthTimer();
+          dotRadiusRef.current = Math.min(80, dragDist);
+        }
+        const outerPt = { x: center.x + dotRadiusRef.current, y: center.y };
+        updateStroke(outerPt, diskRadius);
+      } else {
+        updateStroke(worldPt, diskRadius);
+      }
     }
   };
 
   // Handle Mouse Up (unused parameter e removed to fix warning)
   const handleMouseUp = () => {
+    stopGrowthTimer();
     if (isPanning) {
       setIsPanning(false);
     }
@@ -325,6 +374,21 @@ export const Canvas: React.FC<CanvasProps> = ({
           mirror,
           diskRadius
         );
+
+        if (selectedTool === 'paint-dot') {
+          stopGrowthTimer();
+          const startRadius = brushWidth;
+          dotRadiusRef.current = startRadius;
+          growthIntervalRef.current = setInterval(() => {
+            dotRadiusRef.current += 1.2;
+            if (dotRadiusRef.current > 80) {
+              dotRadiusRef.current = 80;
+              stopGrowthTimer();
+            }
+            const outerPt = { x: worldPt.x + dotRadiusRef.current, y: worldPt.y };
+            updateStroke(outerPt, diskRadius);
+          }, 30);
+        }
       }
     } else if (e.touches.length === 2) {
       // Two fingers touch - Pinch to Zoom + Pan
@@ -367,7 +431,21 @@ export const Canvas: React.FC<CanvasProps> = ({
         });
       } else if (isDrawing && activeStroke) {
         const worldPt = screenToWorld(x, y, rect.width, rect.height, pan.x, pan.y, zoom);
-        updateStroke(worldPt, diskRadius);
+        if (activeStroke.tool === 'paint-dot') {
+          const center = activeStroke.points[0];
+          const dx = worldPt.x - center.x;
+          const dy = worldPt.y - center.y;
+          const dragDist = Math.sqrt(dx * dx + dy * dy);
+          
+          if (dragDist > dotRadiusRef.current) {
+            stopGrowthTimer();
+            dotRadiusRef.current = Math.min(80, dragDist);
+          }
+          const outerPt = { x: center.x + dotRadiusRef.current, y: center.y };
+          updateStroke(outerPt, diskRadius);
+        } else {
+          updateStroke(worldPt, diskRadius);
+        }
       }
     } else if (e.touches.length === 2) {
       // Dual touch: zoom and pan
@@ -409,6 +487,7 @@ export const Canvas: React.FC<CanvasProps> = ({
 
   // Handle Touch End (unused parameter e removed to fix warning)
   const handleTouchEnd = () => {
+    stopGrowthTimer();
     if (isDrawing) {
       setIsDrawing(false);
       endStroke();
@@ -420,12 +499,12 @@ export const Canvas: React.FC<CanvasProps> = ({
 
   // Helper to trigger center/reset view from parent controls
   useEffect(() => {
-    (window as any).resetCanvasView = () => {
+    (window as unknown as Record<string, () => void>).resetCanvasView = () => {
       setZoom(1);
       setPan({ x: 0, y: 0 });
     };
     return () => {
-      delete (window as any).resetCanvasView;
+      delete (window as unknown as Record<string, () => void>).resetCanvasView;
     };
   }, []);
 

@@ -8,7 +8,8 @@ import {
   Move, 
   Eye, 
   HelpCircle,
-  Spline
+  Spline,
+  Droplet
 } from 'lucide-react';
 import type { Stroke } from '../utils/export';
 
@@ -187,6 +188,14 @@ export const Controls: React.FC<ControlsProps> = ({
             >
               <Globe size={18} />
               <span>Hyperbolic</span>
+            </button>
+            <button
+              className={`tool-btn ${selectedTool === 'paint-dot' ? 'active' : ''}`}
+              onClick={() => setSelectedTool('paint-dot')}
+              title="3D Paint Rock Droplet (Hold to grow)"
+            >
+              <Droplet size={18} />
+              <span>Paint Dot</span>
             </button>
             <button
               className={`tool-btn ${selectedTool === 'eraser' ? 'active' : ''}`}

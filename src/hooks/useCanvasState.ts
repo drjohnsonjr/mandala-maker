@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import type { Point } from '../utils/math';
 import type { Stroke } from '../utils/export';
 
@@ -7,8 +7,6 @@ export function useCanvasState() {
   const [redoStack, setRedoStack] = useState<Stroke[]>([]);
   const [activeStroke, setActiveStroke] = useState<Stroke | null>(null);
   
-  const historyRef = useRef<Stroke[]>([]);
-  historyRef.current = history;
 
   const startStroke = useCallback((
     startPoint: Point,
@@ -54,7 +52,7 @@ export function useCanvasState() {
       if (!startPoint) return prev;
 
       // For line, fractal, and hyperbolic tools, we only store start and end points.
-      if (prev.tool === 'line' || prev.tool === 'fractal' || prev.tool === 'hyperbolic') {
+      if (prev.tool === 'line' || prev.tool === 'fractal' || prev.tool === 'hyperbolic' || prev.tool === 'paint-dot') {
         let p = newPoint;
         if (prev.tool === 'hyperbolic') {
           const dist = Math.sqrt(p.x * p.x + p.y * p.y);

@@ -4,7 +4,7 @@ import type { Point } from './math';
 export interface Stroke {
   id: string;
   points: Point[];
-  tool: 'brush' | 'glow' | 'line' | 'fractal' | 'hyperbolic' | 'eraser';
+  tool: 'brush' | 'glow' | 'line' | 'fractal' | 'hyperbolic' | 'eraser' | 'paint-dot';
   color: string;
   width: number;
   opacity: number;
@@ -159,6 +159,67 @@ export function renderStrokesToCanvas(
           ctx.stroke();
         }
       });
+    } else if (stroke.tool === 'paint-dot') {
+      const center = drawPoints[0];
+      const outerPt = drawPoints[drawPoints.length - 1];
+      
+      let radius = stroke.width;
+      if (drawPoints.length > 1 && outerPt) {
+        const dx = outerPt.x - center.x;
+        const dy = outerPt.y - center.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 0.1) {
+          radius = dist;
+        }
+      }
+
+      const symPoints = getSymmetricPoints(center, symmetryCount, mirror);
+
+      symPoints.forEach((pt, sIdx) => {
+        const cx = pt.x;
+        const cy = pt.y;
+        const baseColor = stroke.color === 'rainbow'
+          ? `hsl(${(sIdx * (360 / symPoints.length)) % 360}, 100%, 55%)`
+          : stroke.color;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        ctx.shadowBlur = radius * 0.15;
+        ctx.shadowOffsetX = radius * 0.08;
+        ctx.shadowOffsetY = radius * 0.08;
+        ctx.fillStyle = baseColor;
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+        ctx.clip();
+
+        const shadingGrad = ctx.createRadialGradient(
+          cx - radius * 0.25,
+          cy - radius * 0.25,
+          0,
+          cx,
+          cy,
+          radius
+        );
+        shadingGrad.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+        shadingGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
+        shadingGrad.addColorStop(0.8, 'rgba(0, 0, 0, 0.15)');
+        shadingGrad.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
+
+        ctx.fillStyle = shadingGrad;
+        ctx.fill();
+        ctx.restore();
+
+        ctx.beginPath();
+        ctx.arc(cx - radius * 0.33, cy - radius * 0.33, radius * 0.16, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fill();
+      });
     } else {
       // Freehand pen, glow brush, or eraser
       const symmetricPaths: Point[][] = Array.from({ length: symmetryCount * (mirror ? 2 : 1) }, () => []);
@@ -215,11 +276,9 @@ export function exportToSVG(
   const halfH = canvasHeight / 2;
   const diskRadius = 250; // Poincar? disk radius
 
-  let bgSVG = '';
-  if (bgType === 'solid') {
-    bgSVG = `<rect x="-${halfW}" y="-${halfH}" width="${canvasWidth}" height="${canvasHeight}" fill="${bgColor}" />`;
-  } else {
-    bgSVG = `
+  const bgSVG = bgType === 'solid'
+    ? `<rect x="-${halfW}" y="-${halfH}" width="${canvasWidth}" height="${canvasHeight}" fill="${bgColor}" />`
+    : `
     <defs>
       <radialGradient id="bg-grad" cx="50%" cy="50%" r="70%">
         <stop offset="0%" stop-color="${bgColor}" />
@@ -227,7 +286,6 @@ export function exportToSVG(
       </radialGradient>
     </defs>
     <rect x="-${halfW}" y="-${halfH}" width="${canvasWidth}" height="${canvasHeight}" fill="url(#bg-grad)" />`;
-  }
 
   const glowFilter = `
     <filter id="svg-glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -344,6 +402,36 @@ export function exportToSVG(
           drawingElements += `\n      <path d="${d}" stroke-width="${stroke.width}" ${baseAttrs} />`;
         }
       });
+    } else if (stroke.tool === 'paint-dot') {
+      const center = drawPoints[0];
+      const outerPt = drawPoints[drawPoints.length - 1];
+      
+      let radius = stroke.width;
+      if (drawPoints.length > 1 && outerPt) {
+        const dx = outerPt.x - center.x;
+        const dy = outerPt.y - center.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 0.1) {
+          radius = dist;
+        }
+      }
+
+      const symPoints = getSymmetricPoints(center, stroke.symmetryCount, stroke.mirror);
+
+      symPoints.forEach((pt, s) => {
+        const cx = pt.x;
+        const cy = pt.y;
+        const colorVal = stroke.color === 'rainbow' 
+          ? `hsl(${(s * (360 / symPoints.length)) % 360}, 100%, 55%)` 
+          : stroke.color;
+
+        drawingElements += `\n      <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${radius.toFixed(1)}" fill="${colorVal}" filter="url(#paint-shadow)"${opacityStr} />`;
+        drawingElements += `\n      <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${radius.toFixed(1)}" fill="url(#paint-shading)"${opacityStr} />`;
+        const hx = cx - radius * 0.33;
+        const hy = cy - radius * 0.33;
+        const hr = radius * 0.16;
+        drawingElements += `\n      <circle cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" r="${hr.toFixed(1)}" fill="white" opacity="${(0.9 * stroke.opacity).toFixed(2)}" />`;
+      });
     } else {
       const symPaths: Point[][] = Array.from({ length: stroke.symmetryCount * (stroke.mirror ? 2 : 1) }, () => []);
       for (let pIdx = 0; pIdx < drawPoints.length; pIdx++) {
@@ -374,10 +462,25 @@ export function exportToSVG(
 
   drawingElements += '\n    </g>';
 
+  const paintShadowFilter = `
+    <filter id="paint-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="2" dy="3" stdDeviation="3" flood-color="black" flood-opacity="0.4" />
+    </filter>`;
+
+  const paintShadingGradient = `
+    <radialGradient id="paint-shading" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="white" stop-opacity="0.4" />
+      <stop offset="50%" stop-color="white" stop-opacity="0" />
+      <stop offset="80%" stop-color="black" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="black" stop-opacity="0.55" />
+    </radialGradient>`;
+
   return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-${halfW} -${halfH} ${canvasWidth} ${canvasHeight}" width="${canvasWidth}" height="${canvasHeight}">
   <defs>
     ${glowFilter}
+    ${paintShadowFilter}
+    ${paintShadingGradient}
     ${maskDef}
   </defs>
   ${bgSVG}

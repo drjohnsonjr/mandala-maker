@@ -126,8 +126,9 @@ export const App: React.FC = () => {
   };
 
   const handleResetView = () => {
-    if ((window as any).resetCanvasView) {
-      (window as any).resetCanvasView();
+    const win = window as unknown as Record<string, () => void>;
+    if (win.resetCanvasView) {
+      win.resetCanvasView();
     }
   };
 

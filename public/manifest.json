@@ -1,0 +1,17 @@
+{
+  "short_name": "MandalaStudio",
+  "name": "Mandala Studio Symmetrical Drawing",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#030307",
+  "theme_color": "#030307",
+  "display": "standalone",
+  "orientation": "any"
+}

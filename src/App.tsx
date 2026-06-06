@@ -32,6 +32,7 @@ export const App: React.FC = () => {
   const [bgType, setBgType] = useState<'solid' | 'radial-gradient'>('radial-gradient');
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
+  const [activePaletteColors, setActivePaletteColors] = useState<string[]>([]);
 
   // References for Spacebar panning shortcut
   const previousToolRef = useRef<Stroke['tool'] | 'pan' | null>(null);
@@ -182,6 +183,8 @@ export const App: React.FC = () => {
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
         onUpdateHistorySymmetry={updateAllSymmetries}
+        activePaletteColors={activePaletteColors}
+        setActivePaletteColors={setActivePaletteColors}
       />
 
       {/* Full-Screen Interaction Canvas */}
@@ -200,6 +203,7 @@ export const App: React.FC = () => {
         bgColor={bgColor}
         bgType={bgType}
         showGrid={showGrid}
+        activePaletteColors={activePaletteColors}
       />
     </div>
   );

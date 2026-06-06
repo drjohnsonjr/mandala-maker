@@ -16,7 +16,8 @@ interface CanvasProps {
     opacity: number,
     symmetryCount: number,
     mirror: boolean,
-    diskRadius: number
+    diskRadius: number,
+    paletteColors?: string[]
   ) => void;
   updateStroke: (newPoint: Point, diskRadius: number) => void;
   endStroke: () => void;
@@ -29,6 +30,7 @@ interface CanvasProps {
   bgColor: string;
   bgType: 'solid' | 'radial-gradient';
   showGrid: boolean;
+  activePaletteColors?: string[];
 }
 
 export const Canvas: React.FC<CanvasProps> = ({
@@ -46,6 +48,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   bgColor,
   bgType,
   showGrid,
+  activePaletteColors,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -242,7 +245,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         opacity,
         symmetryCount,
         mirror,
-        diskRadius
+        diskRadius,
+        activePaletteColors
       );
 
       if (selectedTool === 'paint-dot') {
@@ -372,7 +376,8 @@ export const Canvas: React.FC<CanvasProps> = ({
           opacity,
           symmetryCount,
           mirror,
-          diskRadius
+          diskRadius,
+          activePaletteColors
         );
 
         if (selectedTool === 'paint-dot') {

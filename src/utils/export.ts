@@ -10,6 +10,34 @@ export interface Stroke {
   opacity: number;
   symmetryCount: number;
   mirror: boolean;
+  paletteColors?: string[];
+}
+
+// Helpers for color-cycling (Rainbow) drawing
+export function getRainbowColor(
+  index: number,
+  total: number,
+  paletteColors?: string[],
+  offset = 0
+): string {
+  if (paletteColors && paletteColors.length > 0) {
+    const idx = Math.floor(index + offset) % paletteColors.length;
+    return paletteColors[idx];
+  }
+  const hue = ((index * (360 / Math.max(1, total))) + offset) % 360;
+  return `hsl(${hue}, 100%, 55%)`;
+}
+
+export function getRainbowColorForPath(
+  index: number,
+  paletteColors?: string[],
+  step = 3.5
+): string {
+  if (paletteColors && paletteColors.length > 0) {
+    const idx = index % paletteColors.length;
+    return paletteColors[idx];
+  }
+  return `hsl(${(index * step) % 360}, 100%, 55%)`;
 }
 
 // Render the vector stroke history to a given 2D Canvas context
@@ -91,7 +119,7 @@ export function renderStrokesToCanvas(
 
       for (let s = 0; s < symmetricStarts.length; s++) {
         if (stroke.color === 'rainbow') {
-          ctx.strokeStyle = `hsl(${(s * (360 / symmetricStarts.length)) % 360}, 100%, 55%)`;
+          ctx.strokeStyle = getRainbowColor(s, symmetricStarts.length, stroke.paletteColors);
         }
         ctx.beginPath();
         ctx.moveTo(symmetricStarts[s].x, symmetricStarts[s].y);
@@ -111,7 +139,7 @@ export function renderStrokesToCanvas(
         ctx.lineWidth = branch.width;
         for (let s = 0; s < symStarts.length; s++) {
           if (stroke.color === 'rainbow') {
-            ctx.strokeStyle = `hsl(${(s * (360 / symStarts.length) + branch.width * 15) % 360}, 100%, 55%)`;
+            ctx.strokeStyle = getRainbowColor(s, symStarts.length, stroke.paletteColors, branch.width * 15);
           }
           ctx.beginPath();
           ctx.moveTo(symStarts[s].x, symStarts[s].y);
@@ -142,7 +170,7 @@ export function renderStrokesToCanvas(
             ctx.beginPath();
             ctx.moveTo(pathPoints[i].x, pathPoints[i].y);
             ctx.lineTo(pathPoints[i + 1].x, pathPoints[i + 1].y);
-            ctx.strokeStyle = `hsl(${(i * 4.5) % 360}, 100%, 55%)`;
+            ctx.strokeStyle = getRainbowColorForPath(i, stroke.paletteColors, 4.5);
             
             if (stroke.tool === 'glow') {
               ctx.shadowColor = `hsl(${(i * 4.5) % 360}, 100%, 55%)`;
@@ -179,7 +207,7 @@ export function renderStrokesToCanvas(
         const cx = pt.x;
         const cy = pt.y;
         const baseColor = stroke.color === 'rainbow'
-          ? `hsl(${(sIdx * (360 / symPoints.length)) % 360}, 100%, 55%)`
+          ? getRainbowColor(sIdx, symPoints.length, stroke.paletteColors)
           : stroke.color;
 
         ctx.save();
@@ -353,7 +381,7 @@ export function exportToSVG(
 
       for (let s = 0; s < symStarts.length; s++) {
         const colorVal = stroke.color === 'rainbow' 
-          ? `hsl(${(s * (360 / symStarts.length)) % 360}, 100%, 55%)` 
+          ? getRainbowColor(s, symStarts.length, stroke.paletteColors) 
           : stroke.color;
         drawingElements += `\n      <line x1="${symStarts[s].x.toFixed(1)}" y1="${symStarts[s].y.toFixed(1)}" x2="${symEnds[s].x.toFixed(1)}" y2="${symEnds[s].y.toFixed(1)}" stroke-width="${stroke.width}" fill="none" stroke="${colorVal}" stroke-linecap="round" stroke-linejoin="round"${filterStr}${opacityStr} />`;
       }
@@ -391,7 +419,7 @@ export function exportToSVG(
         
         if (stroke.color === 'rainbow') {
           for (let i = 0; i < path.length - 1; i++) {
-            const colorVal = `hsl(${(i * 4.5) % 360}, 100%, 55%)`;
+            const colorVal = getRainbowColorForPath(i, stroke.paletteColors, 4.5);
             drawingElements += `\n      <line x1="${path[i].x.toFixed(1)}" y1="${path[i].y.toFixed(1)}" x2="${path[i+1].x.toFixed(1)}" y2="${path[i+1].y.toFixed(1)}" stroke-width="${stroke.width}" fill="none" stroke="${colorVal}" stroke-linecap="round" stroke-linejoin="round"${filterStr}${opacityStr} />`;
           }
         } else {
@@ -422,7 +450,7 @@ export function exportToSVG(
         const cx = pt.x;
         const cy = pt.y;
         const colorVal = stroke.color === 'rainbow' 
-          ? `hsl(${(s * (360 / symPoints.length)) % 360}, 100%, 55%)` 
+          ? getRainbowColor(s, symPoints.length, stroke.paletteColors) 
           : stroke.color;
 
         drawingElements += `\n      <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${radius.toFixed(1)}" fill="${colorVal}" filter="url(#paint-shadow)"${opacityStr} />`;
@@ -446,7 +474,7 @@ export function exportToSVG(
         
         if (stroke.color === 'rainbow') {
           for (let i = 0; i < path.length - 1; i++) {
-            const colorVal = `hsl(${(i * 3.5) % 360}, 100%, 55%)`;
+            const colorVal = getRainbowColorForPath(i, stroke.paletteColors, 3.5);
             drawingElements += `\n      <line x1="${path[i].x.toFixed(1)}" y1="${path[i].y.toFixed(1)}" x2="${path[i+1].x.toFixed(1)}" y2="${path[i+1].y.toFixed(1)}" stroke-width="${stroke.width}" fill="none" stroke="${colorVal}" stroke-linecap="round" stroke-linejoin="round"${filterStr}${opacityStr} />`;
           }
         } else {

@@ -16,7 +16,8 @@ export function useCanvasState() {
     opacity: number,
     symmetryCount: number,
     mirror: boolean,
-    diskRadius: number
+    diskRadius: number,
+    paletteColors?: string[]
   ) => {
     let p = startPoint;
     if (tool === 'hyperbolic') {
@@ -34,7 +35,8 @@ export function useCanvasState() {
       width,
       opacity,
       symmetryCount,
-      mirror
+      mirror,
+      paletteColors
     };
 
     setActiveStroke(newStroke);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Paintbrush, 
   Sparkles, 
@@ -9,7 +9,12 @@ import {
   Eye, 
   HelpCircle,
   Spline,
-  Droplet
+  Droplet,
+  Compass,
+  Sliders,
+  Palette,
+  Layers,
+  Info
 } from 'lucide-react';
 import type { Stroke } from '../utils/export';
 
@@ -59,6 +64,8 @@ export const Controls: React.FC<ControlsProps> = ({
   sidebarOpen,
   onUpdateHistorySymmetry,
 }) => {
+  const [activeTab, setActiveTab] = useState<'symmetry' | 'tools' | 'brush' | 'colors' | 'canvas' | 'about'>('tools');
+
   const colorPresets = [
     { name: 'White', value: '#ffffff' },
     { name: 'Hot Pink', value: '#ff007f' },
@@ -101,256 +108,356 @@ export const Controls: React.FC<ControlsProps> = ({
         <h2>STUDIO CONTROLS</h2>
       </div>
 
-      <div className="sidebar-content">
-        {/* Symmetry count */}
-        <div className="control-group">
-          <div className="control-label-row">
-            <span>Symmetry Lines</span>
-            <span className="control-value">{symmetryCount}</span>
-          </div>
-          <div className="slider-container">
-            <input
-              type="range"
-              min="2"
-              max="64"
-              value={symmetryCount}
-              onChange={(e) => handleSymmetryChange(parseInt(e.target.value))}
-            />
-          </div>
-          <div className="symmetry-presets">
-            {symmetryPresets.map((preset) => (
-              <button
-                key={preset}
-                className={`preset-btn ${symmetryCount === preset ? 'active' : ''}`}
-                onClick={() => handleSymmetryChange(preset)}
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
+      <div className="sidebar-tabs-container">
+        {/* Left Side: Vertical Tab Strip */}
+        <div className="vertical-tab-strip">
+          <button
+            className={`tab-btn ${activeTab === 'symmetry' ? 'active' : ''}`}
+            onClick={() => setActiveTab('symmetry')}
+            title="Symmetry Settings"
+          >
+            <Compass size={20} />
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'tools' ? 'active' : ''}`}
+            onClick={() => setActiveTab('tools')}
+            title="Drawing Tools"
+          >
+            <Paintbrush size={20} />
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'brush' ? 'active' : ''}`}
+            onClick={() => setActiveTab('brush')}
+            title="Brush Settings"
+          >
+            <Sliders size={20} />
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'colors' ? 'active' : ''}`}
+            onClick={() => setActiveTab('colors')}
+            title="Color Palette"
+          >
+            <Palette size={20} />
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'canvas' ? 'active' : ''}`}
+            onClick={() => setActiveTab('canvas')}
+            title="Background & Guides"
+          >
+            <Layers size={20} />
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'about' ? 'active' : ''}`}
+            onClick={() => setActiveTab('about')}
+            title="About this App"
+          >
+            <Info size={20} />
+          </button>
         </div>
 
-        {/* Mirror Reflection */}
-        <div className="toggle-row">
-          <span className="toggle-label">Mirror Reflection</span>
-          <label className="switch">
-            <input
-              type="checkbox"
-              checked={mirror}
-              onChange={(e) => handleMirrorToggle(e.target.checked)}
-            />
-            <span className="slider-switch"></span>
-          </label>
-        </div>
+        {/* Right Side: Tab Content Pane */}
+        <div className="tab-content-pane">
+          <div className="sidebar-content fade-in" key={activeTab}>
+            {activeTab === 'symmetry' && (
+              <>
+                {/* Symmetry count */}
+                <div className="control-group">
+                  <div className="control-label-row">
+                    <span>Symmetry Lines</span>
+                    <span className="control-value">{symmetryCount}</span>
+                  </div>
+                  <div className="slider-container">
+                    <input
+                      type="range"
+                      min="2"
+                      max="64"
+                      value={symmetryCount}
+                      onChange={(e) => handleSymmetryChange(parseInt(e.target.value))}
+                    />
+                  </div>
+                  <div className="symmetry-presets">
+                    {symmetryPresets.map((preset) => (
+                      <button
+                        key={preset}
+                        className={`preset-btn ${symmetryCount === preset ? 'active' : ''}`}
+                        onClick={() => handleSymmetryChange(preset)}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-        {/* Drawing Tools Grid */}
-        <div className="control-group">
-          <div className="control-label-row">
-            <span>Drawing Tools</span>
-          </div>
-          <div className="tool-grid">
-            <button
-              className={`tool-btn ${selectedTool === 'brush' ? 'active' : ''}`}
-              onClick={() => setSelectedTool('brush')}
-              title="Standard Pen Brush"
-            >
-              <Paintbrush size={18} />
-              <span>Brush</span>
-            </button>
-            <button
-              className={`tool-btn ${selectedTool === 'glow' ? 'active' : ''}`}
-              onClick={() => setSelectedTool('glow')}
-              title="Neon Glowing Brush"
-            >
-              <Sparkles size={18} />
-              <span>Neon</span>
-            </button>
-            <button
-              className={`tool-btn ${selectedTool === 'line' ? 'active' : ''}`}
-              onClick={() => setSelectedTool('line')}
-              title="Symmetric Straight Lines"
-            >
-              <Spline size={18} />
-              <span>Line</span>
-            </button>
-            <button
-              className={`tool-btn ${selectedTool === 'fractal' ? 'active' : ''}`}
-              onClick={() => setSelectedTool('fractal')}
-              title="Fractal Branching Brush"
-            >
-              <GitFork size={18} />
-              <span>Fractal</span>
-            </button>
-            <button
-              className={`tool-btn ${selectedTool === 'hyperbolic' ? 'active' : ''}`}
-              onClick={() => setSelectedTool('hyperbolic')}
-              title="Poincar? Hyperbolic Disk"
-            >
-              <Globe size={18} />
-              <span>Hyperbolic</span>
-            </button>
-            <button
-              className={`tool-btn ${selectedTool === 'paint-dot' ? 'active' : ''}`}
-              onClick={() => setSelectedTool('paint-dot')}
-              title="3D Paint Rock Droplet (Hold to grow)"
-            >
-              <Droplet size={18} />
-              <span>Paint Dot</span>
-            </button>
-            <button
-              className={`tool-btn ${selectedTool === 'eraser' ? 'active' : ''}`}
-              onClick={() => setSelectedTool('eraser')}
-              title="Composite Eraser"
-            >
-              <Eraser size={18} />
-              <span>Eraser</span>
-            </button>
-          </div>
-          <div style={{ marginTop: '4px' }}>
-            <button
-              className={`preset-btn ${selectedTool === 'pan' ? 'active' : ''}`}
-              style={{ width: '100%', display: 'flex', gap: '8px', padding: '10px 0' }}
-              onClick={() => setSelectedTool('pan')}
-            >
-              <Move size={15} />
-              <span>Camera View / Pan Mode</span>
-            </button>
-          </div>
-        </div>
+                {/* Mirror Reflection */}
+                <div className="toggle-row">
+                  <span className="toggle-label">Mirror Reflection</span>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={mirror}
+                      onChange={(e) => handleMirrorToggle(e.target.checked)}
+                    />
+                    <span className="slider-switch"></span>
+                  </label>
+                </div>
+              </>
+            )}
 
-        {/* Brush styling */}
-        <div className="control-group">
-          <div className="control-label-row">
-            <span>Brush Size</span>
-            <span className="control-value">{brushWidth}px</span>
-          </div>
-          <div className="slider-container">
-            <input
-              type="range"
-              min="1"
-              max="50"
-              value={brushWidth}
-              onChange={(e) => setBrushWidth(parseInt(e.target.value))}
-            />
-          </div>
-        </div>
+            {activeTab === 'tools' && (
+              <>
+                {/* Drawing Tools Grid */}
+                <div className="control-group">
+                  <div className="control-label-row">
+                    <span>Drawing Tools</span>
+                  </div>
+                  <div className="tool-grid">
+                    <button
+                      className={`tool-btn ${selectedTool === 'brush' ? 'active' : ''}`}
+                      onClick={() => setSelectedTool('brush')}
+                      title="Standard Pen Brush"
+                    >
+                      <Paintbrush size={18} />
+                      <span>Brush</span>
+                    </button>
+                    <button
+                      className={`tool-btn ${selectedTool === 'glow' ? 'active' : ''}`}
+                      onClick={() => setSelectedTool('glow')}
+                      title="Neon Glowing Brush"
+                    >
+                      <Sparkles size={18} />
+                      <span>Neon</span>
+                    </button>
+                    <button
+                      className={`tool-btn ${selectedTool === 'line' ? 'active' : ''}`}
+                      onClick={() => setSelectedTool('line')}
+                      title="Symmetric Straight Lines"
+                    >
+                      <Spline size={18} />
+                      <span>Line</span>
+                    </button>
+                    <button
+                      className={`tool-btn ${selectedTool === 'fractal' ? 'active' : ''}`}
+                      onClick={() => setSelectedTool('fractal')}
+                      title="Fractal Branching Brush"
+                    >
+                      <GitFork size={18} />
+                      <span>Fractal</span>
+                    </button>
+                    <button
+                      className={`tool-btn ${selectedTool === 'hyperbolic' ? 'active' : ''}`}
+                      onClick={() => setSelectedTool('hyperbolic')}
+                      title="Poincaré Hyperbolic Disk"
+                    >
+                      <Globe size={18} />
+                      <span>Hyperbolic</span>
+                    </button>
+                    <button
+                      className={`tool-btn ${selectedTool === 'paint-dot' ? 'active' : ''}`}
+                      onClick={() => setSelectedTool('paint-dot')}
+                      title="3D Paint Rock Droplet (Hold to grow)"
+                    >
+                      <Droplet size={18} />
+                      <span>Paint Dot</span>
+                    </button>
+                    <button
+                      className={`tool-btn ${selectedTool === 'eraser' ? 'active' : ''}`}
+                      onClick={() => setSelectedTool('eraser')}
+                      title="Composite Eraser"
+                    >
+                      <Eraser size={18} />
+                      <span>Eraser</span>
+                    </button>
+                  </div>
+                  <div style={{ marginTop: '4px' }}>
+                    <button
+                      className={`preset-btn ${selectedTool === 'pan' ? 'active' : ''}`}
+                      style={{ width: '100%', display: 'flex', gap: '8px', padding: '10px 0' }}
+                      onClick={() => setSelectedTool('pan')}
+                    >
+                      <Move size={15} />
+                      <span>Camera View / Pan Mode</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
 
-        <div className="control-group">
-          <div className="control-label-row">
-            <span>Brush Opacity</span>
-            <span className="control-value">{Math.round(opacity * 100)}%</span>
-          </div>
-          <div className="slider-container">
-            <input
-              type="range"
-              min="10"
-              max="100"
-              value={opacity * 100}
-              onChange={(e) => setOpacity(parseInt(e.target.value) / 100)}
-            />
-          </div>
-        </div>
+            {activeTab === 'brush' && (
+              <>
+                {/* Brush styling */}
+                <div className="control-group">
+                  <div className="control-label-row">
+                    <span>Brush Size</span>
+                    <span className="control-value">{brushWidth}px</span>
+                  </div>
+                  <div className="slider-container">
+                    <input
+                      type="range"
+                      min="1"
+                      max="50"
+                      value={brushWidth}
+                      onChange={(e) => setBrushWidth(parseInt(e.target.value))}
+                    />
+                  </div>
+                </div>
 
-        {/* Color Palette */}
-        {selectedTool !== 'eraser' && selectedTool !== 'pan' && (
-          <div className="control-group">
-            <div className="control-label-row">
-              <span>Color Palette</span>
-            </div>
-            <div className="color-picker-grid">
-              {colorPresets.map((preset) => (
-                <button
-                  key={preset.name}
-                  className={`color-swatch ${preset.value === 'rainbow' ? 'rainbow' : ''} ${
-                    currentColor === preset.value ? 'active' : ''
-                  }`}
-                  style={preset.value !== 'rainbow' ? { backgroundColor: preset.value } : {}}
-                  onClick={() => setCurrentColor(preset.value)}
-                  title={preset.name}
-                  aria-label={preset.name}
-                />
-              ))}
-            </div>
+                <div className="control-group">
+                  <div className="control-label-row">
+                    <span>Brush Opacity</span>
+                    <span className="control-value">{Math.round(opacity * 100)}%</span>
+                  </div>
+                  <div className="slider-container">
+                    <input
+                      type="range"
+                      min="10"
+                      max="100"
+                      value={opacity * 100}
+                      onChange={(e) => setOpacity(parseInt(e.target.value) / 100)}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
 
-            {currentColor !== 'rainbow' && (
-              <div className="color-picker-custom" style={{ marginTop: '8px' }}>
-                <input
-                  type="color"
-                  value={currentColor}
-                  onChange={(e) => setCurrentColor(e.target.value)}
-                />
-                <span className="color-picker-label">Custom Palette Color</span>
+            {activeTab === 'colors' && (
+              <>
+                {/* Color Palette */}
+                {selectedTool !== 'eraser' && selectedTool !== 'pan' ? (
+                  <div className="control-group">
+                    <div className="control-label-row">
+                      <span>Color Palette</span>
+                    </div>
+                    <div className="color-picker-grid">
+                      {colorPresets.map((preset) => (
+                        <button
+                          key={preset.name}
+                          className={`color-swatch ${preset.value === 'rainbow' ? 'rainbow' : ''} ${
+                            currentColor === preset.value ? 'active' : ''
+                          }`}
+                          style={preset.value !== 'rainbow' ? { backgroundColor: preset.value } : {}}
+                          onClick={() => setCurrentColor(preset.value)}
+                          title={preset.name}
+                          aria-label={preset.name}
+                        />
+                      ))}
+                    </div>
+
+                    {currentColor !== 'rainbow' && (
+                      <div className="color-picker-custom" style={{ marginTop: '8px' }}>
+                        <input
+                          type="color"
+                          value={currentColor}
+                          onChange={(e) => setCurrentColor(e.target.value)}
+                        />
+                        <span className="color-picker-label">Custom Palette Color</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', textAlign: 'center', padding: '20px 0' }}>
+                    Colors are disabled while using Eraser or Camera View.
+                  </div>
+                )}
+              </>
+            )}
+
+            {activeTab === 'canvas' && (
+              <>
+                {/* Background & Guides */}
+                <div className="control-group">
+                  <div className="control-label-row">
+                    <span>Background & Guidelines</span>
+                  </div>
+
+                  <div className="bg-selector-grid">
+                     {bgPresets.map((bg) => (
+                       <button
+                         key={bg.name}
+                         className={`bg-select-btn ${bgColor === bg.value ? 'active' : ''}`}
+                         onClick={() => setBgColor(bg.value)}
+                       >
+                         <div 
+                           className="bg-preview" 
+                           style={{
+                             background: bgType === 'solid' 
+                               ? bg.value 
+                               : `radial-gradient(circle, ${bg.value} 0%, #050508 100%)`
+                           }} 
+                         />
+                         <span>{bg.name}</span>
+                       </button>
+                     ))}
+                  </div>
+
+                  <div className="symmetry-presets" style={{ marginTop: '6px' }}>
+                    <button
+                      className={`preset-btn ${bgType === 'solid' ? 'active' : ''}`}
+                      onClick={() => setBgType('solid')}
+                    >
+                      Solid Background
+                    </button>
+                    <button
+                      className={`preset-btn ${bgType === 'radial-gradient' ? 'active' : ''}`}
+                      onClick={() => setBgType('radial-gradient')}
+                    >
+                      Radial Shading
+                    </button>
+                  </div>
+
+                  <div className="toggle-row" style={{ marginTop: '6px' }}>
+                    <span className="toggle-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Eye size={16} /> Show Guide Lines
+                    </span>
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={showGrid}
+                        onChange={(e) => setShowGrid(e.target.checked)}
+                      />
+                      <span className="slider-switch"></span>
+                    </label>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'about' && (
+              <div className="about-section">
+                <div className="about-card">
+                  <div className="about-title">Mandala Studio</div>
+                  <p>
+                    Welcome to a meditative drawing space designed for creating complex symmetrical geometry.
+                  </p>
+                  <p style={{ marginTop: '8px' }}>
+                    This application was inspired by the delicate art of <span className="about-highlight">mandala painted rocks</span>, combining organic squeezing-droplet physics with mathematical reflection axes.
+                  </p>
+                  <div className="about-credit">
+                    Created with 🤍 by an AI collaborator using <span className="about-highlight">Antigravity</span> powered by the <span className="about-highlight">Gemini 3.5 Flash</span> language model.
+                  </div>
+                </div>
+                
+                <div className="instruction-box" style={{ marginTop: '4px' }}>
+                  <HelpCircle size={18} />
+                  <div>
+                    <strong>Instructions:</strong> Use your mouse or fingers to draw. Adjust symmetry and tools on the fly—the system updates your history dynamically!
+                  </div>
+                </div>
               </div>
             )}
           </div>
-        )}
-
-        {/* Background & Guides */}
-        <div className="control-group">
-          <div className="control-label-row">
-            <span>Background & Guidelines</span>
-          </div>
-
-          <div className="bg-selector-grid">
-            {bgPresets.map((bg) => (
-              <button
-                key={bg.name}
-                className={`bg-select-btn ${bgColor === bg.value ? 'active' : ''}`}
-                onClick={() => setBgColor(bg.value)}
-              >
-                <div 
-                  className="bg-preview" 
-                  style={{
-                    background: bgType === 'solid' 
-                      ? bg.value 
-                      : `radial-gradient(circle, ${bg.value} 0%, #050508 100%)`
-                  }} 
-                />
-                <span>{bg.name}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="symmetry-presets" style={{ marginTop: '6px' }}>
-            <button
-              className={`preset-btn ${bgType === 'solid' ? 'active' : ''}`}
-              onClick={() => setBgType('solid')}
-            >
-              Solid Background
-            </button>
-            <button
-              className={`preset-btn ${bgType === 'radial-gradient' ? 'active' : ''}`}
-              onClick={() => setBgType('radial-gradient')}
-            >
-              Radial Shading
-            </button>
-          </div>
-
-          <div className="toggle-row" style={{ marginTop: '6px' }}>
-            <span className="toggle-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Eye size={16} /> Show Guide Lines
-            </span>
-            <label className="switch">
-              <input
-                type="checkbox"
-                checked={showGrid}
-                onChange={(e) => setShowGrid(e.target.checked)}
-              />
-              <span className="slider-switch"></span>
-            </label>
-          </div>
         </div>
       </div>
 
-      <div className="sidebar-footer">
-        <div className="instruction-box">
-          <HelpCircle size={18} />
-          <div>
-            <strong>Interactive Canvas:</strong> Use <strong>Scroll Wheel</strong> or <strong>Pinch</strong> to zoom. 
-            Hold <strong>Spacebar</strong> or <strong>Middle Mouse Button</strong> to pan your workspace.
+      {activeTab !== 'about' && (
+        <div className="sidebar-footer">
+          <div className="instruction-box">
+            <HelpCircle size={18} />
+            <div>
+              <strong>Interactive Canvas:</strong> Use <strong>Scroll Wheel</strong> or <strong>Pinch</strong> to zoom. Hold <strong>Spacebar</strong> or <strong>Middle Mouse Button</strong> to pan your workspace.
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
